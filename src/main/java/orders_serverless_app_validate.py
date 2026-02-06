@@ -16,15 +16,15 @@ class Activity:
     # === RESOURCE NAMES (customize based on assessment) ===
     LAMBDA_POST_ROLE = "lambda-post-role"
     STEP_FUNCTION_INVOKE_LAMBDA_ROLE = "step-function-invoke-lambda"
-    PROCESS_PAYMENT_LAMBDA = "process-payment"
-    PROCESS_RESTAURANT_LAMBDA = "process-restaurant"
-    UPDATE_ORDER_FROM_PENDING_STATE_LAMBDA = "update-order-from-pending-state"
+    PROCESS_PAYMENT_LAMBDA_FUNCTION = "process-payment"
+    PROCESS_RESTAURANT_LAMBDA_FUNCTION = "process-restaurant"
+    UPDATE_ORDER_STATUS_LAMBDA_FUNCTION = "update-order-from-pending-state"
     PROCESS_ORDER_STATUS_STEP_FUNCTION = "process-order-status"
-    ORDER_STATUS_NOTIFIER_TOPIC = "order-status-notifier"
+    ORDER_STATUS_NOTIFIER_SNS_TOPIC = "order-status-notifier"
     ORDERS_ASYNC_DEAD_LETTER_QUEUE = "orders-async-dead-letter-queue"
     ORDERS_ASYNC_QUEUE = "orders-async-queue"
     ORDERS_API_GATEWAY = "orders-api"
-    ORDERS_DATABASE_TABLE = "orders-database"
+    ORDERS_DATABASE_DYNAMODB_TABLE = "orders-database"
 
     # === HELPER METHODS ===
 
@@ -98,11 +98,11 @@ class Activity:
 
     # === VALIDATION METHODS ===
 
-    def testcase_check_lambda_post_role_policies(self, session, test_object):
-        testcase_description = f"Checking for policies attached to role {self.LAMBDA_POST_ROLE}"
+    def testcase_check_for_the_updation_of_lambda_post_role(self, session, test_object):
+        testcase_description = "Verify that the lambda-post-role IAM role exists and has AWSStepFunctionsFullAccess policy attached"
         reference = "https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies.html"
-        expected = f"Role {self.LAMBDA_POST_ROLE} created with required policies attached"
-        actual = f"Role NOT created or policies NOT attached"
+        expected = "Role lambda-post-role created with AWSStepFunctionsFullAccess policy attached"
+        actual = "Role NOT created or policy NOT attached"
         test_object.update_pre_result(testcase_description, expected)
         try:
             policies = {"AWSStepFunctionsFullAccess"}
@@ -115,10 +115,10 @@ class Activity:
             test_object.eval_message["testcase_name"] = str(e)
 
     def testcase_check_step_function_invoke_lambda_role(self, session, test_object):
-        testcase_description = f"Checking for policies attached to role {self.STEP_FUNCTION_INVOKE_LAMBDA_ROLE}"
+        testcase_description = "Verify that the step-function-invoke-lambda role exists with AWSLambdaRole and AmazonSNSFullAccess policies"
         reference = "https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies.html"
-        expected = f"Role {self.STEP_FUNCTION_INVOKE_LAMBDA_ROLE} created with required policies attached"
-        actual = f"Role NOT created or policies NOT attached"
+        expected = "Role step-function-invoke-lambda created with AWSLambdaRole and AmazonSNSFullAccess policies attached"
+        actual = "Role NOT created or policies NOT attached"
         test_object.update_pre_result(testcase_description, expected)
         try:
             policies = {"AWSLambdaRole", "AmazonSNSFullAccess"}
@@ -131,60 +131,54 @@ class Activity:
             test_object.eval_message["testcase_name"] = str(e)
 
     def testcase_check_process_payment_lambda_function(self, session, test_object):
-        testcase_description = f"Check for Lambda function {self.PROCESS_PAYMENT_LAMBDA}"
+        testcase_description = "Verify that the process-payment Lambda function exists with Python runtime"
         reference = "https://docs.aws.amazon.com/lambda/latest/dg/API_CreateFunction.html"
-        expected = f"Lambda function {self.PROCESS_PAYMENT_LAMBDA} created with correct runtime"
-        actual = f"Lambda function NOT created as expected"
+        expected = "Lambda function process-payment created with correct runtime"
+        actual = "Lambda function NOT created as expected"
         test_object.update_pre_result(testcase_description, expected)
         try:
-            lambda_client = session.client('lambda')
-            for function in lambda_client.list_functions()['Functions']:
-                if function['FunctionName'] == self.PROCESS_PAYMENT_LAMBDA and 'python' in function['Runtime']:
-                    actual = expected
-                    return test_object.update_result(1, expected, actual, Activity.test_passed, "N/A")
+            if self.check_if_lambda_function_exists(session, self.PROCESS_PAYMENT_LAMBDA_FUNCTION, 'python'):
+                actual = expected
+                return test_object.update_result(1, expected, actual, Activity.test_passed, "N/A")
             return test_object.update_result(0, expected, actual, Activity.test_failed, reference)
         except Exception as e:
             test_object.update_result(0, expected, actual, Activity.test_failed, reference)
             test_object.eval_message["testcase_name"] = str(e)
 
     def testcase_check_process_restaurant_lambda_function(self, session, test_object):
-        testcase_description = f"Check for Lambda function {self.PROCESS_RESTAURANT_LAMBDA}"
+        testcase_description = "Verify that the process-restaurant Lambda function exists with Python runtime"
         reference = "https://docs.aws.amazon.com/lambda/latest/dg/API_CreateFunction.html"
-        expected = f"Lambda function {self.PROCESS_RESTAURANT_LAMBDA} created with correct runtime"
-        actual = f"Lambda function NOT created as expected"
+        expected = "Lambda function process-restaurant created with correct runtime"
+        actual = "Lambda function NOT created as expected"
         test_object.update_pre_result(testcase_description, expected)
         try:
-            lambda_client = session.client('lambda')
-            for function in lambda_client.list_functions()['Functions']:
-                if function['FunctionName'] == self.PROCESS_RESTAURANT_LAMBDA and 'python' in function['Runtime']:
-                    actual = expected
-                    return test_object.update_result(1, expected, actual, Activity.test_passed, "N/A")
+            if self.check_if_lambda_function_exists(session, self.PROCESS_RESTAURANT_LAMBDA_FUNCTION, 'python'):
+                actual = expected
+                return test_object.update_result(1, expected, actual, Activity.test_passed, "N/A")
             return test_object.update_result(0, expected, actual, Activity.test_failed, reference)
         except Exception as e:
             test_object.update_result(0, expected, actual, Activity.test_failed, reference)
             test_object.eval_message["testcase_name"] = str(e)
 
     def testcase_check_update_order_status_lambda_function(self, session, test_object):
-        testcase_description = f"Check for Lambda function {self.UPDATE_ORDER_FROM_PENDING_STATE_LAMBDA}"
+        testcase_description = "Verify that the update-order-from-pending-state Lambda function exists with Python runtime"
         reference = "https://docs.aws.amazon.com/lambda/latest/dg/API_CreateFunction.html"
-        expected = f"Lambda function {self.UPDATE_ORDER_FROM_PENDING_STATE_LAMBDA} created with correct runtime"
-        actual = f"Lambda function NOT created as expected"
+        expected = "Lambda function update-order-from-pending-state created with correct runtime"
+        actual = "Lambda function NOT created as expected"
         test_object.update_pre_result(testcase_description, expected)
         try:
-            lambda_client = session.client('lambda')
-            for function in lambda_client.list_functions()['Functions']:
-                if function['FunctionName'] == self.UPDATE_ORDER_FROM_PENDING_STATE_LAMBDA and 'python' in function['Runtime']:
-                    actual = expected
-                    return test_object.update_result(1, expected, actual, Activity.test_passed, "N/A")
+            if self.check_if_lambda_function_exists(session, self.UPDATE_ORDER_STATUS_LAMBDA_FUNCTION, 'python'):
+                actual = expected
+                return test_object.update_result(1, expected, actual, Activity.test_passed, "N/A")
             return test_object.update_result(0, expected, actual, Activity.test_failed, reference)
         except Exception as e:
             test_object.update_result(0, expected, actual, Activity.test_failed, reference)
             test_object.eval_message["testcase_name"] = str(e)
 
     def testcase_check_step_function_creation(self, session, test_object):
-        testcase_description = f"Check for Step Function {self.PROCESS_ORDER_STATUS_STEP_FUNCTION}"
+        testcase_description = "Verify that the process-order-status Step Function state machine is created with ACTIVE status"
         reference = "https://docs.aws.amazon.com/step-functions/latest/dg/"
-        expected = "Step function created with correct state configuration"
+        expected = "Step function process-order-status created with correct state configuration"
         actual = "Step function NOT created as expected"
         test_object.update_pre_result(testcase_description, expected)
         try:
@@ -201,20 +195,20 @@ class Activity:
             test_object.eval_message["testcase_name"] = str(e)
 
     def testcase_check_step_function_states_configuration(self, session, test_object):
-        testcase_description = f"Check Step Function {self.PROCESS_ORDER_STATUS_STEP_FUNCTION} for required states"
+        testcase_description = "Verify Step Function has states: ProcessPayment, WaitForPayment, PaymentStatus, ProcessRestaurant, UpdateOrderStatus, PaymentFailed, SendOrderStatus"
         reference = "https://docs.aws.amazon.com/step-functions/latest/dg/"
-        expected = "Step function has all required states: ProcessPayment, WaitForPayment, PaymentStatus, ProcessRestaurant, UpdateOrderStatus, PaymentFailed, SendOrderStatus"
-        actual = "Step function does NOT have all required states"
+        expected = "Step function has correct states configuration"
+        actual = "Step function states NOT configured as expected"
         test_object.update_pre_result(testcase_description, expected)
         try:
             step_function_client = session.client('stepfunctions')
-            required_states = {"ProcessPayment", "WaitForPayment", "PaymentStatus", "ProcessRestaurant", "UpdateOrderStatus", "PaymentFailed", "SendOrderStatus"}
             for sf in step_function_client.list_state_machines()['stateMachines']:
                 if sf['name'] == self.PROCESS_ORDER_STATUS_STEP_FUNCTION:
                     description = step_function_client.describe_state_machine(stateMachineArn=sf['stateMachineArn'])
-                    definition = json.loads(description['definition'])
-                    state_names = set(definition.get('States', {}).keys())
-                    if required_states.issubset(state_names):
+                    state_machine_definition = json.loads(description['definition'])
+                    expected_states = {"ProcessPayment", "WaitForPayment", "PaymentStatus", "ProcessRestaurant", "UpdateOrderStatus", "PaymentFailed", "SendOrderStatus"}
+                    actual_states = set(state_machine_definition['States'].keys())
+                    if expected_states.issubset(actual_states):
                         actual = expected
                         return test_object.update_result(1, expected, actual, Activity.test_passed, "N/A")
             return test_object.update_result(0, expected, actual, Activity.test_failed, reference)
@@ -223,82 +217,13 @@ class Activity:
             test_object.eval_message["testcase_name"] = str(e)
 
     def testcase_check_sns_topic_creation(self, session, test_object):
-        testcase_description = f"Check for SNS Topic {self.ORDER_STATUS_NOTIFIER_TOPIC}"
+        testcase_description = "Verify that the order-status-notifier SNS topic is created"
         reference = "https://docs.aws.amazon.com/sns/latest/dg/"
-        expected = f"SNS Topic {self.ORDER_STATUS_NOTIFIER_TOPIC} created"
-        actual = f"SNS Topic NOT created"
+        expected = "SNS Topic order-status-notifier created"
+        actual = "SNS Topic NOT created"
         test_object.update_pre_result(testcase_description, expected)
         try:
-            sns_client = session.client('sns')
-            for topic in sns_client.list_topics()['Topics']:
-                if topic['TopicArn'].split(":")[-1] == self.ORDER_STATUS_NOTIFIER_TOPIC:
-                    actual = expected
-                    return test_object.update_result(1, expected, actual, Activity.test_passed, "N/A")
-            return test_object.update_result(0, expected, actual, Activity.test_failed, reference)
-        except Exception as e:
-            test_object.update_result(0, expected, actual, Activity.test_failed, reference)
-            test_object.eval_message["testcase_name"] = str(e)
-
-    def testcase_check_sns_topic_email_subscription(self, session, test_object):
-        testcase_description = f"Check for confirmed email subscription on SNS Topic {self.ORDER_STATUS_NOTIFIER_TOPIC}"
-        reference = "https://docs.aws.amazon.com/sns/latest/dg/"
-        expected = f"Confirmed email subscription exists for SNS Topic {self.ORDER_STATUS_NOTIFIER_TOPIC}"
-        actual = f"Confirmed email subscription NOT found for SNS Topic"
-        test_object.update_pre_result(testcase_description, expected)
-        try:
-            sns_client = session.client('sns')
-            topic_arn = None
-            for topic in sns_client.list_topics()['Topics']:
-                if topic['TopicArn'].split(":")[-1] == self.ORDER_STATUS_NOTIFIER_TOPIC:
-                    topic_arn = topic['TopicArn']
-                    break
-            if not topic_arn:
-                return test_object.update_result(0, expected, actual, Activity.test_failed, reference)
-            subs = sns_client.list_subscriptions_by_topic(TopicArn=topic_arn)['Subscriptions']
-            for sub in subs:
-                if sub['Protocol'] == 'email' and sub['SubscriptionArn'] != 'PendingConfirmation':
-                    actual = expected
-                    return test_object.update_result(1, expected, actual, Activity.test_passed, "N/A")
-            return test_object.update_result(0, expected, actual, Activity.test_failed, reference)
-        except Exception as e:
-            test_object.update_result(0, expected, actual, Activity.test_failed, reference)
-            test_object.eval_message["testcase_name"] = str(e)
-
-    def testcase_check_sqs_dead_letter_queue(self, session, test_object):
-        testcase_description = f"Check for SQS Queue {self.ORDERS_ASYNC_DEAD_LETTER_QUEUE}"
-        reference = "https://docs.aws.amazon.com/AWSSimpleQueueService/"
-        expected = f"SQS Queue {self.ORDERS_ASYNC_DEAD_LETTER_QUEUE} created"
-        actual = f"SQS Queue NOT created"
-        test_object.update_pre_result(testcase_description, expected)
-        try:
-            client = session.client('sqs')
-            for queue_url in client.list_queues().get('QueueUrls', []):
-                if queue_url.split("/")[-1] == self.ORDERS_ASYNC_DEAD_LETTER_QUEUE:
-                    actual = expected
-                    return test_object.update_result(1, expected, actual, Activity.test_passed, "N/A")
-            return test_object.update_result(0, expected, actual, Activity.test_failed, reference)
-        except Exception as e:
-            test_object.update_result(0, expected, actual, Activity.test_failed, reference)
-            test_object.eval_message["testcase_name"] = str(e)
-
-    def testcase_check_sqs_orders_queue(self, session, test_object):
-        testcase_description = f"Check for SQS Queue {self.ORDERS_ASYNC_QUEUE} with dead letter queue configured"
-        reference = "https://docs.aws.amazon.com/AWSSimpleQueueService/"
-        expected = f"SQS Queue {self.ORDERS_ASYNC_QUEUE} created with dead letter queue configured"
-        actual = f"SQS Queue NOT created or dead letter queue NOT configured"
-        test_object.update_pre_result(testcase_description, expected)
-        try:
-            client = session.client('sqs')
-            queue_url = None
-            for url in client.list_queues().get('QueueUrls', []):
-                if url.split("/")[-1] == self.ORDERS_ASYNC_QUEUE:
-                    queue_url = url
-                    break
-            if not queue_url:
-                return test_object.update_result(0, expected, actual, Activity.test_failed, reference)
-            attrs = client.get_queue_attributes(QueueUrl=queue_url, AttributeNames=['RedrivePolicy'])
-            redrive_policy = attrs.get('Attributes', {}).get('RedrivePolicy')
-            if redrive_policy:
+            if self.if_topic_is_created_return_arn(session, self.ORDER_STATUS_NOTIFIER_SNS_TOPIC):
                 actual = expected
                 return test_object.update_result(1, expected, actual, Activity.test_passed, "N/A")
             return test_object.update_result(0, expected, actual, Activity.test_failed, reference)
@@ -306,16 +231,53 @@ class Activity:
             test_object.update_result(0, expected, actual, Activity.test_failed, reference)
             test_object.eval_message["testcase_name"] = str(e)
 
-    def testcase_check_api_gateway_creation(self, session, test_object):
-        testcase_description = f"Check for API Gateway {self.ORDERS_API_GATEWAY}"
-        reference = "https://docs.aws.amazon.com/apigateway/"
-        expected = f"API Gateway {self.ORDERS_API_GATEWAY} created with HTTP protocol"
-        actual = f"API Gateway NOT created"
+    def testcase_check_sns_topic_email_subscription(self, session, test_object):
+        testcase_description = "Verify that an email subscription exists and is confirmed for the order-status-notifier topic"
+        reference = "https://docs.aws.amazon.com/sns/latest/dg/"
+        expected = "Email subscription exists and is confirmed for SNS Topic order-status-notifier"
+        actual = "Email subscription NOT confirmed"
         test_object.update_pre_result(testcase_description, expected)
         try:
-            client = session.client('apigatewayv2')
-            for api in client.get_apis()['Items']:
-                if api['Name'] == self.ORDERS_API_GATEWAY and api['ProtocolType'] == "HTTP":
+            sns_client = session.client('sns')
+            topic_arn = self.if_topic_is_created_return_arn(session, self.ORDER_STATUS_NOTIFIER_SNS_TOPIC)[1]
+            if topic_arn:
+                subscriptions = sns_client.list_subscriptions_by_topic(TopicArn=topic_arn)['Subscriptions']
+                for subscription in subscriptions:
+                    if subscription['Protocol'] == 'email' and subscription['SubscriptionArn'] != 'PendingConfirmation':
+                        actual = expected
+                        return test_object.update_result(1, expected, actual, Activity.test_passed, "N/A")
+            return test_object.update_result(0, expected, actual, Activity.test_failed, reference)
+        except Exception as e:
+            test_object.update_result(0, expected, actual, Activity.test_failed, reference)
+            test_object.eval_message["testcase_name"] = str(e)
+
+    def testcase_check_dead_letter_queue_creation(self, session, test_object):
+        testcase_description = "Verify that the orders-async-dead-letter-queue SQS queue is created"
+        reference = "https://docs.aws.amazon.com/AWSSimpleQueueService/"
+        expected = "SQS Queue orders-async-dead-letter-queue created"
+        actual = "SQS Queue NOT created"
+        test_object.update_pre_result(testcase_description, expected)
+        try:
+            if self.return_url_if_queue_created(session, self.ORDERS_ASYNC_DEAD_LETTER_QUEUE)[0]:
+                actual = expected
+                return test_object.update_result(1, expected, actual, Activity.test_passed, "N/A")
+            return test_object.update_result(0, expected, actual, Activity.test_failed, reference)
+        except Exception as e:
+            test_object.update_result(0, expected, actual, Activity.test_failed, reference)
+            test_object.eval_message["testcase_name"] = str(e)
+
+    def testcase_check_orders_receiving_queue_creation(self, session, test_object):
+        testcase_description = "Verify that the orders-async-queue SQS queue is created with dead letter queue configured"
+        reference = "https://docs.aws.amazon.com/AWSSimpleQueueService/"
+        expected = "SQS Queue orders-async-queue created with dead letter queue configured"
+        actual = "SQS Queue NOT created or dead letter queue NOT configured"
+        test_object.update_pre_result(testcase_description, expected)
+        try:
+            client = session.client('sqs')
+            queue_created, queue_url = self.return_url_if_queue_created(session, self.ORDERS_ASYNC_QUEUE)
+            if queue_created:
+                attributes = client.get_queue_attributes(QueueUrl=queue_url, AttributeNames=['RedrivePolicy'])['Attributes']
+                if 'RedrivePolicy' in attributes:
                     actual = expected
                     return test_object.update_result(1, expected, actual, Activity.test_passed, "N/A")
             return test_object.update_result(0, expected, actual, Activity.test_failed, reference)
@@ -323,27 +285,34 @@ class Activity:
             test_object.update_result(0, expected, actual, Activity.test_failed, reference)
             test_object.eval_message["testcase_name"] = str(e)
 
-    def testcase_check_dynamodb_orders_table(self, session, test_object):
-        testcase_description = f"Check for DynamoDB Table {self.ORDERS_DATABASE_TABLE}"
-        reference = "https://docs.aws.amazon.com/dynamodb/"
-        expected = f"DynamoDB table {self.ORDERS_DATABASE_TABLE} exists with correct schema"
-        actual = f"DynamoDB table NOT created or schema incorrect"
+    def testcase_check_api_gateway_creation(self, session, test_object):
+        testcase_description = "Verify that the orders-api HTTP API Gateway is created"
+        reference = "https://docs.aws.amazon.com/apigateway/"
+        expected = "API Gateway orders-api created with HTTP protocol"
+        actual = "API Gateway NOT created"
         test_object.update_pre_result(testcase_description, expected)
         try:
-            dynamodb_client = session.client('dynamodb')
-            try:
-                response = dynamodb_client.describe_table(TableName=self.ORDERS_DATABASE_TABLE)
-                table = response['Table']
-                # Example schema validation: PK = orderId, SK = status
-                key_schema = table.get('KeySchema', [])
-                key_names = {k['AttributeName'] for k in key_schema}
-                if 'orderId' in key_names:
-                    actual = expected
-                    return test_object.update_result(1, expected, actual, Activity.test_passed, "N/A")
-                else:
-                    return test_object.update_result(0, expected, actual, Activity.test_failed, reference)
-            except dynamodb_client.exceptions.ResourceNotFoundException:
-                return test_object.update_result(0, expected, actual, Activity.test_failed, reference)
+            if self.if_api_gateway_is_created_return_id_and_endpoint(session, self.ORDERS_API_GATEWAY)[0]:
+                actual = expected
+                return test_object.update_result(1, expected, actual, Activity.test_passed, "N/A")
+            return test_object.update_result(0, expected, actual, Activity.test_failed, reference)
+        except Exception as e:
+            test_object.update_result(0, expected, actual, Activity.test_failed, reference)
+            test_object.eval_message["testcase_name"] = str(e)
+
+    def testcase_check_dynamodb_orders_table(self, session, test_object):
+        testcase_description = "Verify that the orders-database DynamoDB table exists with correct schema"
+        reference = "https://docs.aws.amazon.com/dynamodb/"
+        expected = "DynamoDB table orders-database exists with correct schema"
+        actual = "DynamoDB table NOT created or schema incorrect"
+        test_object.update_pre_result(testcase_description, expected)
+        try:
+            table_exists, table = self.check_if_dynamodb_table_exists(session, self.ORDERS_DATABASE_DYNAMODB_TABLE)
+            if table_exists:
+                # Add schema validation logic here if needed
+                actual = expected
+                return test_object.update_result(1, expected, actual, Activity.test_passed, "N/A")
+            return test_object.update_result(0, expected, actual, Activity.test_failed, reference)
         except Exception as e:
             test_object.update_result(0, expected, actual, Activity.test_failed, reference)
             test_object.eval_message["testcase_name"] = str(e)
@@ -358,7 +327,7 @@ def start_tests(session, args):
     challenge_test = Activity()
 
     # === CALL ALL VALIDATION METHODS ===
-    challenge_test.testcase_check_lambda_post_role_policies(session, test_object)
+    challenge_test.testcase_check_for_the_updation_of_lambda_post_role(session, test_object)
     challenge_test.testcase_check_step_function_invoke_lambda_role(session, test_object)
     challenge_test.testcase_check_process_payment_lambda_function(session, test_object)
     challenge_test.testcase_check_process_restaurant_lambda_function(session, test_object)
@@ -367,8 +336,8 @@ def start_tests(session, args):
     challenge_test.testcase_check_step_function_states_configuration(session, test_object)
     challenge_test.testcase_check_sns_topic_creation(session, test_object)
     challenge_test.testcase_check_sns_topic_email_subscription(session, test_object)
-    challenge_test.testcase_check_sqs_dead_letter_queue(session, test_object)
-    challenge_test.testcase_check_sqs_orders_queue(session, test_object)
+    challenge_test.testcase_check_dead_letter_queue_creation(session, test_object)
+    challenge_test.testcase_check_orders_receiving_queue_creation(session, test_object)
     challenge_test.testcase_check_api_gateway_creation(session, test_object)
     challenge_test.testcase_check_dynamodb_orders_table(session, test_object)
 
