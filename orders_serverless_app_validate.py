@@ -16,15 +16,15 @@ class Activity:
     # === RESOURCE NAMES (customize based on assessment) ===
     LAMBDA_POST_ROLE = "lambda-post-role"
     STEP_FUNCTION_INVOKE_LAMBDA_ROLE = "step-function-invoke-lambda"
-    PROCESS_PAYMENT_LAMBDA_FUNCTION = "process-payment"
-    PROCESS_RESTAURANT_LAMBDA_FUNCTION = "process-restaurant"
-    UPDATE_ORDER_STATUS_LAMBDA_FUNCTION = "update-order-from-pending-state"
+    PROCESS_PAYMENT_LAMBDA = "process-payment"
+    PROCESS_RESTAURANT_LAMBDA = "process-restaurant"
+    UPDATE_ORDER_STATUS_LAMBDA = "update-order-from-pending-state"
     PROCESS_ORDER_STATUS_STEP_FUNCTION = "process-order-status"
-    ORDER_STATUS_NOTIFIER_SNS_TOPIC = "order-status-notifier"
+    ORDER_STATUS_NOTIFIER_TOPIC = "order-status-notifier"
     ORDERS_ASYNC_DEAD_LETTER_QUEUE = "orders-async-dead-letter-queue"
     ORDERS_ASYNC_QUEUE = "orders-async-queue"
-    ORDERS_API_GATEWAY = "orders-api"
-    ORDERS_DATABASE_DYNAMODB_TABLE = "orders-database"
+    ORDERS_API = "orders-api"
+    ORDERS_DATABASE_TABLE = "orders-database"
 
     # === HELPER METHODS ===
 
@@ -137,7 +137,7 @@ class Activity:
         actual = "Lambda function NOT created as expected"
         test_object.update_pre_result(testcase_description, expected)
         try:
-            if self.check_if_lambda_function_exists(session, self.PROCESS_PAYMENT_LAMBDA_FUNCTION, 'python'):
+            if self.check_if_lambda_function_exists(session, self.PROCESS_PAYMENT_LAMBDA, 'python'):
                 actual = expected
                 return test_object.update_result(1, expected, actual, Activity.test_passed, "N/A")
             return test_object.update_result(0, expected, actual, Activity.test_failed, reference)
@@ -152,7 +152,7 @@ class Activity:
         actual = "Lambda function NOT created as expected"
         test_object.update_pre_result(testcase_description, expected)
         try:
-            if self.check_if_lambda_function_exists(session, self.PROCESS_RESTAURANT_LAMBDA_FUNCTION, 'python'):
+            if self.check_if_lambda_function_exists(session, self.PROCESS_RESTAURANT_LAMBDA, 'python'):
                 actual = expected
                 return test_object.update_result(1, expected, actual, Activity.test_passed, "N/A")
             return test_object.update_result(0, expected, actual, Activity.test_failed, reference)
@@ -167,7 +167,7 @@ class Activity:
         actual = "Lambda function NOT created as expected"
         test_object.update_pre_result(testcase_description, expected)
         try:
-            if self.check_if_lambda_function_exists(session, self.UPDATE_ORDER_STATUS_LAMBDA_FUNCTION, 'python'):
+            if self.check_if_lambda_function_exists(session, self.UPDATE_ORDER_STATUS_LAMBDA, 'python'):
                 actual = expected
                 return test_object.update_result(1, expected, actual, Activity.test_passed, "N/A")
             return test_object.update_result(0, expected, actual, Activity.test_failed, reference)
@@ -182,9 +182,13 @@ class Activity:
         actual = "Step function NOT created as expected"
         test_object.update_pre_result(testcase_description, expected)
         try:
-            if self.return_arn_if_step_function_is_created(session, self.PROCESS_ORDER_STATUS_STEP_FUNCTION):
-                actual = expected
-                return test_object.update_result(1, expected, actual, Activity.test_passed, "N/A")
+            step_function_client = session.client('stepfunctions')
+            for sf in step_function_client.list_state_machines()['stateMachines']:
+                if sf['name'] == self.PROCESS_ORDER_STATUS_STEP_FUNCTION:
+                    description = step_function_client.describe_state_machine(stateMachineArn=sf['stateMachineArn'])
+                    if description['status'] == 'ACTIVE':
+                        actual = expected
+                        return test_object.update_result(1, expected, actual, Activity.test_passed, "N/A")
             return test_object.update_result(0, expected, actual, Activity.test_failed, reference)
         except Exception as e:
             test_object.update_result(0, expected, actual, Activity.test_failed, reference)
@@ -201,14 +205,12 @@ class Activity:
             for sf in step_function_client.list_state_machines()['stateMachines']:
                 if sf['name'] == self.PROCESS_ORDER_STATUS_STEP_FUNCTION:
                     description = step_function_client.describe_state_machine(stateMachineArn=sf['stateMachineArn'])
-                    if description['status'] == 'ACTIVE':
-                        # Assuming the state machine definition is a JSON string
-                        definition = json.loads(description['definition'])
-                        states = definition.get('States', {})
-                        expected_states = {"ProcessPayment", "WaitForPayment", "PaymentStatus", "ProcessRestaurant", "UpdateOrderStatus", "PaymentFailed", "SendOrderStatus"}
-                        if expected_states.issubset(states.keys()):
-                            actual = expected
-                            return test_object.update_result(1, expected, actual, Activity.test_passed, "N/A")
+                    state_machine_definition = json.loads(description['definition'])
+                    expected_states = {"ProcessPayment", "WaitForPayment", "PaymentStatus", "ProcessRestaurant", "UpdateOrderStatus", "PaymentFailed", "SendOrderStatus"}
+                    actual_states = set(state_machine_definition['States'].keys())
+                    if expected_states.issubset(actual_states):
+                        actual = expected
+                        return test_object.update_result(1, expected, actual, Activity.test_passed, "N/A")
             return test_object.update_result(0, expected, actual, Activity.test_failed, reference)
         except Exception as e:
             test_object.update_result(0, expected, actual, Activity.test_failed, reference)
@@ -221,7 +223,7 @@ class Activity:
         actual = "SNS Topic NOT created"
         test_object.update_pre_result(testcase_description, expected)
         try:
-            if self.if_topic_is_created_return_arn(session, self.ORDER_STATUS_NOTIFIER_SNS_TOPIC):
+            if self.if_topic_is_created_return_arn(session, self.ORDER_STATUS_NOTIFIER_TOPIC):
                 actual = expected
                 return test_object.update_result(1, expected, actual, Activity.test_passed, "N/A")
             return test_object.update_result(0, expected, actual, Activity.test_failed, reference)
@@ -237,7 +239,7 @@ class Activity:
         test_object.update_pre_result(testcase_description, expected)
         try:
             sns_client = session.client('sns')
-            topic_arn = self.if_topic_is_created_return_arn(session, self.ORDER_STATUS_NOTIFIER_SNS_TOPIC)[1]
+            topic_arn = self.if_topic_is_created_return_arn(session, self.ORDER_STATUS_NOTIFIER_TOPIC)[1]
             if topic_arn:
                 subscriptions = sns_client.list_subscriptions_by_topic(TopicArn=topic_arn)['Subscriptions']
                 for subscription in subscriptions:
@@ -272,8 +274,8 @@ class Activity:
         test_object.update_pre_result(testcase_description, expected)
         try:
             client = session.client('sqs')
-            queue_url = self.return_url_if_queue_created(session, self.ORDERS_ASYNC_QUEUE)[1]
-            if queue_url:
+            queue_created, queue_url = self.return_url_if_queue_created(session, self.ORDERS_ASYNC_QUEUE)
+            if queue_created:
                 attributes = client.get_queue_attributes(QueueUrl=queue_url, AttributeNames=['RedrivePolicy'])['Attributes']
                 if 'RedrivePolicy' in attributes:
                     actual = expected
@@ -290,7 +292,7 @@ class Activity:
         actual = "API Gateway NOT created"
         test_object.update_pre_result(testcase_description, expected)
         try:
-            if self.if_api_gateway_is_created_return_id_and_endpoint(session, self.ORDERS_API_GATEWAY)[0]:
+            if self.if_api_gateway_is_created_return_id_and_endpoint(session, self.ORDERS_API)[0]:
                 actual = expected
                 return test_object.update_result(1, expected, actual, Activity.test_passed, "N/A")
             return test_object.update_result(0, expected, actual, Activity.test_failed, reference)
@@ -302,12 +304,12 @@ class Activity:
         testcase_description = "Verify that the orders-database DynamoDB table exists with correct schema"
         reference = "https://docs.aws.amazon.com/dynamodb/"
         expected = "DynamoDB table orders-database exists with correct schema"
-        actual = "DynamoDB table NOT created or schema NOT correct"
+        actual = "DynamoDB table NOT created or schema incorrect"
         test_object.update_pre_result(testcase_description, expected)
         try:
-            table_exists, table = self.check_if_dynamodb_table_exists(session, self.ORDERS_DATABASE_DYNAMODB_TABLE)
+            table_exists, table = self.check_if_dynamodb_table_exists(session, self.ORDERS_DATABASE_TABLE)
             if table_exists:
-                # Assuming schema validation logic here
+                # Add schema validation logic here if needed
                 actual = expected
                 return test_object.update_result(1, expected, actual, Activity.test_passed, "N/A")
             return test_object.update_result(0, expected, actual, Activity.test_failed, reference)
