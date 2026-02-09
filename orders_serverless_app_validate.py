@@ -178,7 +178,7 @@ class Activity:
     def testcase_check_step_function_creation(self, session, test_object):
         testcase_description = "Verify that the process-order-status Step Function state machine is created with ACTIVE status"
         reference = "https://docs.aws.amazon.com/step-functions/latest/dg/"
-        expected = "Step function process-order-status created with ACTIVE status"
+        expected = "Step function process-order-status created with correct state configuration"
         actual = "Step function NOT created as expected"
         test_object.update_pre_result(testcase_description, expected)
         try:
@@ -197,7 +197,7 @@ class Activity:
     def testcase_check_step_function_states_configuration(self, session, test_object):
         testcase_description = "Verify Step Function has states: ProcessPayment, WaitForPayment, PaymentStatus, ProcessRestaurant, UpdateOrderStatus, PaymentFailed, SendOrderStatus"
         reference = "https://docs.aws.amazon.com/step-functions/latest/dg/"
-        expected = "Step function has correct states configuration"
+        expected = "Step function process-order-status has correct states configuration"
         actual = "Step function states NOT configured as expected"
         test_object.update_pre_result(testcase_description, expected)
         try:
@@ -234,7 +234,7 @@ class Activity:
     def testcase_check_sns_topic_email_subscription(self, session, test_object):
         testcase_description = "Verify that an email subscription exists and is confirmed for the order-status-notifier topic"
         reference = "https://docs.aws.amazon.com/sns/latest/dg/"
-        expected = "Email subscription exists and is confirmed for SNS Topic order-status-notifier"
+        expected = "Email subscription confirmed for SNS Topic order-status-notifier"
         actual = "Email subscription NOT confirmed"
         test_object.update_pre_result(testcase_description, expected)
         try:
@@ -274,8 +274,8 @@ class Activity:
         test_object.update_pre_result(testcase_description, expected)
         try:
             client = session.client('sqs')
-            queue_created, queue_url = self.return_url_if_queue_created(session, self.ORDERS_ASYNC_QUEUE)
-            if queue_created:
+            queue_url = self.return_url_if_queue_created(session, self.ORDERS_ASYNC_QUEUE)[1]
+            if queue_url:
                 attributes = client.get_queue_attributes(QueueUrl=queue_url, AttributeNames=['RedrivePolicy'])['Attributes']
                 if 'RedrivePolicy' in attributes:
                     actual = expected
