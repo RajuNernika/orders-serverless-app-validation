@@ -274,8 +274,8 @@ class Activity:
         test_object.update_pre_result(testcase_description, expected)
         try:
             client = session.client('sqs')
-            queue_url = self.return_url_if_queue_created(session, self.ORDERS_ASYNC_QUEUE)[1]
-            if queue_url:
+            queue_created, queue_url = self.return_url_if_queue_created(session, self.ORDERS_ASYNC_QUEUE)
+            if queue_created:
                 attributes = client.get_queue_attributes(QueueUrl=queue_url, AttributeNames=['RedrivePolicy'])['Attributes']
                 if 'RedrivePolicy' in attributes:
                     actual = expected
