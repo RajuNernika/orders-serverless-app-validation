@@ -3,11 +3,6 @@ import json
 from result_output import ResultOutput
 import importlib.util
 import sys
-from decimal import Decimal
-from boto3.dynamodb.conditions import Key, Attr
-from pprint import pprint
-import urllib3
-import requests
 
 class Activity:
     test_passed = "Test Passed"
