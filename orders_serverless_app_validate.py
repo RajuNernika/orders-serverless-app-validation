@@ -91,8 +91,8 @@ class Activity:
     def testcase_check_lambda_post_role_policies(self, session, test_object):
         testcase_description = "Verify that the lambda-post-role IAM role exists and has AWSStepFunctionsFullAccess policy attached"
         reference = "https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies.html"
-        expected = f"Role {self.LAMBDA_POST_ROLE_NAME} created with {self.REQUIRED_POLICY} policy attached"
-        actual = f"Role {self.LAMBDA_POST_ROLE_NAME} NOT created or {self.REQUIRED_POLICY} policy NOT attached"
+        expected = "Role lambda-post-role created with AWSStepFunctionsFullAccess policy attached"
+        actual = "Role NOT created or policy NOT attached"
         test_object.update_pre_result(testcase_description, expected)
         try:
             policies = {self.REQUIRED_POLICY}
